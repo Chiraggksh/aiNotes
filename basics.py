@@ -1,3 +1,4 @@
+
 """ BASICS
 
 python apna language h to convert into machine codes....python is interpreted language not compiled one
@@ -552,6 +553,7 @@ advanced methods:
               package is a folder containing one or more modules aand then u import it
               if folder ke adrr folder ho to from folder1.folder2 import maths etc vgra vgraaaa
 """  
+
 
 
 
