@@ -611,9 +611,132 @@ llm ko behave ni but ans map krdenaaaa.....
 meeting details bnaii (actual) 
 system prompt me ki is value ko dkhna, na ho to ye ye khudse ni to blank krdenaa
 .entity map tarikaa and system prompt me bss ye ki extract krde bhaiii yee ho to ye krna and all
-sudharne k lie history response store kro, system prompt me puchlo and then ask again
-or either preme sari info leloo phlee and then only calls this new functionn vgra vgra...
+sudharne k lie history response store kro in model chat, system prompt me puchlo and then ask again
+or either preme sari info leloo phlee ai ka alg function and then only calls this one functionn vgra vgra...jb sari details aajayegii
+
+*/
+
+/* all about mcp
+
+abhi tk we know about tools: server p jata h query and then llm if ni krr skta to vo tool deta h
+to llm tools se btt krega to structured outputs me hi btt kregaa yee pta h hmee 
+
+llm directly api ko ni bolta vo server ko bolta h and then server se data ata h and llm p jataaa h
+
+but inke sath problms:
+suppose server bdh jae 3 apps...server me apna apna llm, and teeno mee tools dalne pdegee client can use diff diff and microservice ki trhh
+tarikaa ki aisa kchh...ai tools likhde alg server p...adapters bnane pdegee....jo chahee koi bhi server ho aitools ka ek hi server ho so that code brr br naa likhna pdee
+so u have to make proxies.....
+
+so if 10 tools and 5 server to n*m adapters bnanee pdegee....fyda ye bhi ki algg alg rkhkee bd me add bhi krr skte ho
+
+isi ko solve krne k liee mcp: model context protocol
+protocol is rules
+
+protocol that helps ai app to talk to external tools....
+
+mcp server and mcp client
+server jahaa ai tools exist krte h, sare server llm part jo tools use krre h use kehte client
+
+so server mee server+llm+mcp client hota h and teeno kaa kaam mcp server se interact krna and data leke aana
+server+llm ko hum bolte h host so overall mcp client, mcp server, host
+
+todo task: tools ki zrurt pdegii orr bs ai tools ko alg server me rkhrhee h
+
+so overall picture: server p req aegii to llm ko btate h ki konse tools ka access h yee btata h mcp client sb andrr se handle hojatii h
+                    mcp client takes tools from server with description-- response dega in particular format in structured output
+                    full json way mee aegaa anss
+                    isi ko boltee h service discovery
+
+                    then llm ko data provide krte h hum-- now llm model is aware
+                    so query aegii server p ...llm ko pta chlega tools use kregaaaa
+                    so llm structured input degaaa to server
+                    llm server ko dega...server mcp client ko dega and send to mcp server to execute task
+
+ques iss normal rest api hi krleteee...same chlega bhaiii but isme khudse execute krni pdtii but hmne standard arch bnaadia....
+mcp client khudse tools lelega and return krdegaa llm ko
+standard approach.....mcp k andrr rest api hoataaa h useee 
+
+mcp server sirf tools ni but also resources and prompts...tools to pta h but resources is something ai to know something related to RAG, prompts ko store kyu krna?: reusable instructions for ai
+llm khudse store ni krr skta hence we need resources for itt...mcp server me sari internal policies ari ho.. rag integrate krkee kaam mee lee ao mstt
+mcp client ko bhjne se phle server bhaiyaa smjh jaegaa and responsibility sb host ki hi rhegi
+
+code: tools/list ko call krlegaa...call krne k liee tools/call
+      mcp server ki dependency chahie...and tools me mcp tool ka name and description dedoo for every function iske sath sath input schemaa
+      mcp tool param
+
+      so mcp client apne server se kse kregaa bt: default url is 8080/mcp and it is stdio (local config ka part)
+      and alg alg server p deploy krte h so http lgega streamable http use krtee h 
+      client jb bnaoge to mcp tools ka access dega in chatclient...seedha mcp tools daldiaa khudse kchni kiaa
 
 
+*/
+
+/* how to test ai applications:
+
+we knw ai applications are non deterministic to evaluate kse kroge:
+deterministic me to test cases hote h unit test cases vgraa...specific input me specific output
+
+but llm me to alg alg responses aa skte h...so cant compare strings so semantic meaning smjhnaa pdegaa
+llm model se ye expect ni chahiee ki exactly same result as porbabilistic, but it is jo hum chahte thee vo ans dee
+
+ab hme bht queries aegii to manually to check krege ni--> system prompt change, model change p brr brr dkhna pdega chunk size in rag me change, top k bht scenarios like temp change, tool add/remove
+ai app behave krr rhi h expected way me?
+
+ai evals: systematic way of measuring if ai is behaving how we want
+          bss broader way as non deterministic
+          jsee input hogaa to must mention 30 day return window...to if ans ayaa to ksee kregeee
+
+          then we will do evaluation on basis of some parameters
+
+          we need test input-> expected behaviour (what shd be mentioned, agents me tool caling, rag me retrieval, or structured)
+                      -> evaluation kse krogee: 
+                      codee to check if match hojae (not whole but some scenarios)
+                      if not then use second llm (llm as a judge)
+                      normal human team
+
+          sirf llm ni but puri application check krni h
+
+          first thing inpput: evaluation dataset (set of questions) question same rehna chahieee and golden dataset (questions and answers bhi miljaee)
+                              agents ho jse calculator: expcted tool and expected argument bhi hoge and expected answer tb khegee golden dataset
+                              rag application: questions, top k kya, llm ans
+                              structured: questions, exact schema
+
+                              bnaegaaa kaun: start me developer then bdd me live user queries
+
+                              dataset acha when: normal questions, edge cases (if 30th day p return), out of the scope questions, adverse quesitons to check system prompt
+
+
+          expected input: we told this kiskaa kyaa
+
+          evaluation: code (deterministic evaluation) llm as judge (quality evaluation) and humans
+
+          deterministic: if correctness can be expressed clearly in code, use code
+                         jse structured ka clear aegaa....isme llm ni chahiee bs json valid and schema validaiton mapping
+                         agents me check bhi lgaaskte ho if func call hua yaa ni huaa....200 response diaa ya ni diaa etc etc
+                         rag me top 3 tooo top k empty h to return krdo simple
+          
+         hence non deterministic baki me: server p aega ans llm se and second llm validate kregaaa usko cost bdh jaegi, token vgra....ek kaa kaam alg system prompt and then structured output return krnaa
+                         judge llm check kregaaa ai quality metrics
+
+                         relevancem correctness faithfulness helpfulness hallucinationo
+
+                         relavance: kya llm ne response kia vo ans kia bhi ni kiaa query ko
+                         correctness: even if relevant to correct h bhi yaa ni (source of truth: golden dataset, db, known fact)
+                         faithfulness: rag k lie important...faithfulness ki query se extra knowledge di yaa ni
+                         helpul: kya satisfactory h? ki simple word h yaa kseee
+                         hallucinate: jo exist ni krti, jhuthi hoti h context hi lost yaa smjh alg jaegaa....context sirf miss ni but glt convey
+
+                         1-5 hi rkhowww
+
+            pointwise evaluation (ek brr mee ek hi prompt) and pairwise (testing llm prompt p1 and prompt p2 and then responses compareee ki konsa best tha)
+            rubricss: 1-5 kaa mtlbb kyaa h faithfulness and every category ki mtlb 
+            ek ek krkeee b krrskte hrr quality yaa ek sathh hi
+
+            system prompt thoda kam hojata h but llm calls bdh jati h tradeoff
+
+            or use humans (subjectivity ajatii h)
+
+            offline evaluation means phlee...online when it is hosted by clientss 
 
 */
